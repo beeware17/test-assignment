@@ -1,0 +1,40 @@
+name: "Terraform Deployment"
+
+on:
+  push:
+    branches:
+      - dev
+
+jobs:
+  terraform:
+    name: "Terraform Apply"
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        environment: [dev]
+        region: [eu-central-1]
+
+    steps:
+      - name: "Checkout Repository"
+        uses: actions/checkout@v4
+
+      - name: "Setup Terraform"
+        uses: hashicorp/setup-terraform@v3
+
+      - name: "Configure AWS Credentials"
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          # TODO: Replace it with Github runner inside AWS account
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ matrix.region }}
+
+      - name: "Terraform Init"
+        run: terraform init
+
+      - name: "Terraform Plan"
+        run: terraform plan -var="aws_region=${{ matrix.region }}" -var="environment=${{ matrix.environment }}"
+
+      - name: "Terraform Apply"
+        run: terraform apply -auto-approve -var="aws_region=${{ matrix.region }}" -var="environment=${{ matrix.environment }}"
